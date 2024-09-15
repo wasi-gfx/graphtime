@@ -1,0 +1,20 @@
+[package]
+name = "graphtime"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.17", features = ["derive"] }
+pollster = "0.3.0"
+wasmtime = "21.0"
+wasmtime-wasi = "21.0"
+tokio = { version = "1.40.0", features = ["full"] }
+env_logger = "0.11.5"
+log = "0.4.22"
+anyhow = "1.0.89"
+wasi-graphics-context-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "754ad0f329438b8dfd679c1721286cb50c47f9fc" }
+wasi-mini-canvas-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "754ad0f329438b8dfd679c1721286cb50c47f9fc", features = ["winit"] }
+wasi-webgpu-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "754ad0f329438b8dfd679c1721286cb50c47f9fc" }
+wasi-frame-buffer-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "754ad0f329438b8dfd679c1721286cb50c47f9fc" }
