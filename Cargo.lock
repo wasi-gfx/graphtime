@@ -1376,7 +1376,7 @@ dependencies = [
  "tokio",
  "wasi-frame-buffer-wasmtime",
  "wasi-graphics-context-wasmtime",
- "wasi-mini-canvas-wasmtime",
+ "wasi-surface-wasmtime",
  "wasi-webgpu-wasmtime",
  "wasmtime",
  "wasmtime-wasi",
@@ -3041,8 +3041,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 [[package]]
 name = "wasi-frame-buffer-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=caed50bfb6738721cf50bc90f19aa0ae5e8db1c4#caed50bfb6738721cf50bc90f19aa0ae5e8db1c4"
+source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=c45cc0806897c61fad1591c941d15ff28fcb7f55#c45cc0806897c61fad1591c941d15ff28fcb7f55"
 dependencies = [
+ "bytemuck",
  "raw-window-handle",
  "softbuffer",
  "wasi-graphics-context-wasmtime",
@@ -3053,7 +3054,7 @@ dependencies = [
 [[package]]
 name = "wasi-graphics-context-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=caed50bfb6738721cf50bc90f19aa0ae5e8db1c4#caed50bfb6738721cf50bc90f19aa0ae5e8db1c4"
+source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=c45cc0806897c61fad1591c941d15ff28fcb7f55#c45cc0806897c61fad1591c941d15ff28fcb7f55"
 dependencies = [
  "raw-window-handle",
  "wasmtime",
@@ -3061,9 +3062,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasi-mini-canvas-wasmtime"
+name = "wasi-surface-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=caed50bfb6738721cf50bc90f19aa0ae5e8db1c4#caed50bfb6738721cf50bc90f19aa0ae5e8db1c4"
+source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=c45cc0806897c61fad1591c941d15ff28fcb7f55#c45cc0806897c61fad1591c941d15ff28fcb7f55"
 dependencies = [
  "async-broadcast",
  "async-trait",
@@ -3079,7 +3080,7 @@ dependencies = [
 [[package]]
 name = "wasi-webgpu-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=caed50bfb6738721cf50bc90f19aa0ae5e8db1c4#caed50bfb6738721cf50bc90f19aa0ae5e8db1c4"
+source = "git+https://github.com/MendyBerger/wasi-webgpu.git?rev=c45cc0806897c61fad1591c941d15ff28fcb7f55#c45cc0806897c61fad1591c941d15ff28fcb7f55"
 dependencies = [
  "async-trait",
  "callback-future",
