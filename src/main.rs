@@ -3,14 +3,14 @@ use clap::Parser;
 use std::sync::Arc;
 use wasi_frame_buffer_wasmtime::WasiFrameBufferView;
 use wasi_graphics_context_wasmtime::WasiGraphicsContextView;
-use wasi_surface_wasmtime::{MiniCanvas, MiniCanvasDesc, WasiMiniCanvasView};
+use wasi_surface_wasmtime::{Surface, SurfaceDesc, WasiSurfaceView};
 use wasi_webgpu_wasmtime::WasiWebGpuView;
 use wasmtime::{
     component::{Component, Linker},
     Config, Engine, Store,
 };
 
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -32,11 +32,10 @@ impl HostState {
             ctx: WasiCtxBuilder::new().inherit_stdio().build(),
             instance: Arc::new(wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global::new(
                 "webgpu",
-                wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceDescriptor {
+                &wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceDescriptor {
                     backends: wasi_webgpu_wasmtime::reexports::wgpu_types::Backends::all(),
                     flags: wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceFlags::from_build_config(),
-                    dx12_shader_compiler: wasi_webgpu_wasmtime::reexports::wgpu_types::Dx12Compiler::Fxc,
-                    gles_minor_version: wasi_webgpu_wasmtime::reexports::wgpu_types::Gles3MinorVersion::default(),
+                    backend_options: wasi_webgpu_wasmtime::reexports::wgpu_types::BackendOptions::default(),
                 },
             )),
             main_thread_proxy,
@@ -44,11 +43,13 @@ impl HostState {
     }
 }
 
-impl WasiView for HostState {
+impl IoView for HostState {
     fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
+}
 
+impl WasiView for HostState {
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
     }
@@ -79,8 +80,8 @@ impl WasiWebGpuView for HostState {
     }
 }
 
-impl WasiMiniCanvasView for HostState {
-    fn create_canvas(&self, desc: MiniCanvasDesc) -> MiniCanvas {
+impl WasiSurfaceView for HostState {
+    fn create_canvas(&self, desc: SurfaceDesc) -> Surface {
         pollster::block_on(self.main_thread_proxy.create_window(desc))
     }
 }
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
     wasi_webgpu_wasmtime::add_to_linker(&mut linker)?;
     wasi_frame_buffer_wasmtime::add_to_linker(&mut linker)?;
     wasi_graphics_context_wasmtime::add_to_linker(&mut linker)?;
-    wasi_surface_wasmtime::add_only_mini_canvas_to_linker(&mut linker)?;
+    wasi_surface_wasmtime::add_only_surface_to_linker(&mut linker)?;
     wasmtime_wasi::add_to_linker_sync(&mut linker)?;
 
     let (main_thread_loop, main_thread_proxy) =
@@ -114,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
     let component =
         Component::from_file(&engine, &args.file).context("Component file not found")?;
 
-    let (command, _instance) =
+    let command =
         wasmtime_wasi::bindings::Command::instantiate_async(&mut store, &component, &linker)
             .await
             .unwrap();
