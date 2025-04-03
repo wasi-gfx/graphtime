@@ -8,13 +8,14 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.17", features = ["derive"] }
 pollster = "0.3.0"
-wasmtime = "21.0"
-wasmtime-wasi = "21.0"
+wasmtime = "31.0"
+wasmtime-wasi = "31.0"
 tokio = { version = "1.40.0", features = ["full"] }
 env_logger = "0.11.5"
 log = "0.4.22"
 anyhow = "1.0.89"
-wasi-graphics-context-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "ea5e57cd6bf3d09caeb7f69d529e625585424dc5" }
-wasi-surface-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "ea5e57cd6bf3d09caeb7f69d529e625585424dc5", features = ["winit"] }
-wasi-webgpu-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "ea5e57cd6bf3d09caeb7f69d529e625585424dc5" }
-wasi-frame-buffer-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "ea5e57cd6bf3d09caeb7f69d529e625585424dc5" }
+wasi-graphics-context-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "5c0fc8bb2b597d477236beb00488755d1e94a02d" }
+wasi-surface-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "5c0fc8bb2b597d477236beb00488755d1e94a02d", features = ["winit"] }
+wasi-webgpu-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "5c0fc8bb2b597d477236beb00488755d1e94a02d" }
+wasi-frame-buffer-wasmtime = { git = "https://github.com/MendyBerger/wasi-webgpu.git", rev = "5c0fc8bb2b597d477236beb00488755d1e94a02d" }
+
