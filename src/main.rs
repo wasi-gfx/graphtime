@@ -10,7 +10,8 @@ use wasmtime::{
     Config, Engine, Store,
 };
 
-use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi_io::IoView;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -36,6 +37,7 @@ impl HostState {
                     backends: wasi_webgpu_wasmtime::reexports::wgpu_types::Backends::all(),
                     flags: wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceFlags::from_build_config(),
                     backend_options: wasi_webgpu_wasmtime::reexports::wgpu_types::BackendOptions::default(),
+                    memory_budget_thresholds: wasi_webgpu_wasmtime::reexports::wgpu_types::MemoryBudgetThresholds::default(),
                 },
             )),
             main_thread_proxy,
@@ -50,8 +52,11 @@ impl IoView for HostState {
 }
 
 impl WasiView for HostState {
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.ctx
+    fn ctx(&mut self) -> wasmtime_wasi::WasiCtxView<'_> {
+        wasmtime_wasi::WasiCtxView {
+            ctx: &mut self.ctx,
+            table: &mut self.table,
+        }
     }
 }
 
@@ -63,8 +68,8 @@ struct UiThreadSpawner(wasi_surface_wasmtime::WasiWinitEventLoopProxy);
 impl wasi_webgpu_wasmtime::MainThreadSpawner for UiThreadSpawner {
     async fn spawn<F, T>(&self, f: F) -> T
     where
-        F: FnOnce() -> T + Send + Sync + 'static,
-        T: Send + Sync + 'static,
+        F: FnOnce() -> T + Send + 'static,
+        T: Send + 'static,
     {
         self.0.spawn(f).await
     }
@@ -88,9 +93,9 @@ impl WasiSurfaceView for HostState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // env_logger::builder()
-    //     .filter_level(log::LevelFilter::Info)
-    //     .init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
     let args = Args::parse();
 
@@ -104,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
     wasi_frame_buffer_wasmtime::add_to_linker(&mut linker)?;
     wasi_graphics_context_wasmtime::add_to_linker(&mut linker)?;
     wasi_surface_wasmtime::add_only_surface_to_linker(&mut linker)?;
-    wasmtime_wasi::add_to_linker_sync(&mut linker)?;
+    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
 
     let (main_thread_loop, main_thread_proxy) =
         wasi_surface_wasmtime::create_wasi_winit_event_loop();
@@ -116,7 +121,7 @@ async fn main() -> anyhow::Result<()> {
         Component::from_file(&engine, &args.file).context("Component file not found")?;
 
     let command =
-        wasmtime_wasi::bindings::Command::instantiate_async(&mut store, &component, &linker)
+        wasmtime_wasi::p2::bindings::Command::instantiate_async(&mut store, &component, &linker)
             .await
             .unwrap();
 
