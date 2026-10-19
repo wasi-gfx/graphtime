@@ -6,16 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.5.17", features = ["derive"] }
-pollster = "0.3.0"
-wasmtime = "40.0"
-wasmtime-wasi = "40.0"
-wasmtime-wasi-io = "40.0"
-tokio = { version = "1.40.0", features = ["full"] }
-env_logger = "0.11.5"
-log = "0.4.22"
-anyhow = "1.0.89"
-wasi-graphics-context-wasmtime = { git = "https://github.com/wasi-gfx/wasi-gfx-runtime.git", rev = "d99b9331892973794021ba63470cb9baf57348b7" }
-wasi-surface-wasmtime = { git = "https://github.com/wasi-gfx/wasi-gfx-runtime.git", rev = "d99b9331892973794021ba63470cb9baf57348b7", features = ["winit"] }
-wasi-webgpu-wasmtime = { git = "https://github.com/wasi-gfx/wasi-gfx-runtime.git", rev = "d99b9331892973794021ba63470cb9baf57348b7" }
-wasi-frame-buffer-wasmtime = { git = "https://github.com/wasi-gfx/wasi-gfx-runtime.git", rev = "d99b9331892973794021ba63470cb9baf57348b7" }
+clap = { version = "4", features = ["derive"] }
+wasmtime = "49"
+wasmtime-wasi = "49"
+tokio = { version = "1", features = ["full"] }
+env_logger = "0.11"
+log = "0.4"
+frame-buffer-wasmtime = "0.4"
+surface-wasmtime = { version = "0.4", features = ["winit", "surface-webgpu", "surface-frame-buffer"] }
+wasi-webgpu-wasmtime = "0.4"

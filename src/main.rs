@@ -1,17 +1,18 @@
-use anyhow::Context;
 use clap::Parser;
+use frame_buffer_wasmtime::{FrameBufferCtx, FrameBufferCtxView};
 use std::sync::Arc;
-use wasi_frame_buffer_wasmtime::WasiFrameBufferView;
-use wasi_graphics_context_wasmtime::WasiGraphicsContextView;
-use wasi_surface_wasmtime::{Surface, SurfaceDesc, WasiSurfaceView};
-use wasi_webgpu_wasmtime::WasiWebGpuView;
+use surface_wasmtime::{
+    SurfaceCtx, SurfaceCtxView, SurfaceFrameBufferCtx, SurfaceFrameBufferCtxView, SurfaceWebgpuCtx,
+    SurfaceWebgpuCtxView,
+};
+use wasi_webgpu_wasmtime::{WasiWebGpuCtx, WasiWebGpuCtxView, WasiWebGpuOptions};
 use wasmtime::{
     component::{Component, Linker},
+    error::Context,
     Config, Engine, Store,
 };
 
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
-use wasmtime_wasi_io::IoView;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -23,31 +24,29 @@ struct HostState {
     pub table: ResourceTable,
     pub ctx: WasiCtx,
     pub instance: Arc<wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global>,
-    pub main_thread_proxy: wasi_surface_wasmtime::WasiWinitEventLoopProxy,
+    pub webgpu_options: WasiWebGpuOptions,
+    pub main_thread_proxy: surface_wasmtime::winit::WasiWinitEventLoopProxy,
 }
 
 impl HostState {
-    fn new(main_thread_proxy: wasi_surface_wasmtime::WasiWinitEventLoopProxy) -> Self {
+    fn new(main_thread_proxy: surface_wasmtime::winit::WasiWinitEventLoopProxy) -> Self {
         Self {
             table: ResourceTable::new(),
             ctx: WasiCtxBuilder::new().inherit_stdio().build(),
             instance: Arc::new(wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global::new(
                 "webgpu",
-                &wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceDescriptor {
+                wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceDescriptor {
                     backends: wasi_webgpu_wasmtime::reexports::wgpu_types::Backends::all(),
                     flags: wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceFlags::from_build_config(),
                     backend_options: wasi_webgpu_wasmtime::reexports::wgpu_types::BackendOptions::default(),
                     memory_budget_thresholds: wasi_webgpu_wasmtime::reexports::wgpu_types::MemoryBudgetThresholds::default(),
+                    display: None,
                 },
+                None,
             )),
+            webgpu_options: WasiWebGpuOptions::default(),
             main_thread_proxy,
         }
-    }
-}
-
-impl IoView for HostState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
     }
 }
 
@@ -60,39 +59,62 @@ impl WasiView for HostState {
     }
 }
 
-impl WasiGraphicsContextView for HostState {}
-impl WasiFrameBufferView for HostState {}
-
-struct UiThreadSpawner(wasi_surface_wasmtime::WasiWinitEventLoopProxy);
-
-impl wasi_webgpu_wasmtime::MainThreadSpawner for UiThreadSpawner {
-    async fn spawn<F, T>(&self, f: F) -> T
-    where
-        F: FnOnce() -> T + Send + 'static,
-        T: Send + 'static,
-    {
-        self.0.spawn(f).await
+impl WasiWebGpuCtxView for HostState {
+    fn webgpu_ctx(&mut self) -> WasiWebGpuCtx<'_> {
+        WasiWebGpuCtx {
+            instance: &self.instance,
+            table: &mut self.table,
+            options: &self.webgpu_options,
+        }
     }
 }
 
-impl WasiWebGpuView for HostState {
-    fn instance(&self) -> Arc<wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global> {
-        Arc::clone(&self.instance)
-    }
-
-    fn ui_thread_spawner(&self) -> Box<impl wasi_webgpu_wasmtime::MainThreadSpawner + 'static> {
-        Box::new(UiThreadSpawner(self.main_thread_proxy.clone()))
+impl FrameBufferCtxView for HostState {
+    fn frame_buffer_ctx<'a>(&'a mut self) -> FrameBufferCtx<'a> {
+        FrameBufferCtx {
+            table: &mut self.table,
+        }
     }
 }
 
-impl WasiSurfaceView for HostState {
-    fn create_canvas(&self, desc: SurfaceDesc) -> Surface {
-        pollster::block_on(self.main_thread_proxy.create_window(desc))
+impl SurfaceCtxView for HostState {
+    type Spawner = surface_wasmtime::winit::WasiWinitEventLoopProxy;
+    fn surface_ctx(&mut self) -> SurfaceCtx<'_, surface_wasmtime::winit::WasiWinitEventLoopProxy> {
+        SurfaceCtx {
+            table: &mut self.table,
+            main_thread_spawner: &self.main_thread_proxy,
+        }
+    }
+}
+
+impl SurfaceWebgpuCtxView for HostState {
+    type Spawner = surface_wasmtime::winit::WasiWinitEventLoopProxy;
+    fn surface_webgpu_ctx(
+        &mut self,
+    ) -> SurfaceWebgpuCtx<'_, surface_wasmtime::winit::WasiWinitEventLoopProxy> {
+        SurfaceWebgpuCtx {
+            table: &mut self.table,
+            instance: &self.instance,
+            main_thread_spawner: &self.main_thread_proxy,
+        }
+    }
+}
+
+impl SurfaceFrameBufferCtxView for HostState {
+    type Spawner = surface_wasmtime::winit::WasiWinitEventLoopProxy;
+    fn surface_frame_buffer_ctx(
+        &mut self,
+    ) -> SurfaceFrameBufferCtx<'_, surface_wasmtime::winit::WasiWinitEventLoopProxy> {
+        SurfaceFrameBufferCtx {
+            table: &mut self.table,
+            instance: &self.instance,
+            main_thread_spawner: &self.main_thread_proxy,
+        }
     }
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> wasmtime::Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
@@ -101,18 +123,16 @@ async fn main() -> anyhow::Result<()> {
 
     let mut config = Config::default();
     config.wasm_component_model(true);
-    config.async_support(true);
     let engine = Engine::new(&config)?;
     let mut linker: Linker<HostState> = Linker::new(&engine);
 
     wasi_webgpu_wasmtime::add_to_linker(&mut linker)?;
-    wasi_frame_buffer_wasmtime::add_to_linker(&mut linker)?;
-    wasi_graphics_context_wasmtime::add_to_linker(&mut linker)?;
-    wasi_surface_wasmtime::add_only_surface_to_linker(&mut linker)?;
-    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
+    frame_buffer_wasmtime::add_to_linker(&mut linker)?;
+    surface_wasmtime::add_all_to_linker(&mut linker)?;
+    wasmtime_wasi::p3::add_to_linker(&mut linker)?;
 
     let (main_thread_loop, main_thread_proxy) =
-        wasi_surface_wasmtime::create_wasi_winit_event_loop();
+        surface_wasmtime::winit::create_wasi_winit_event_loop();
     let host_state = HostState::new(main_thread_proxy);
 
     let mut store = Store::new(&engine, host_state);
@@ -121,15 +141,17 @@ async fn main() -> anyhow::Result<()> {
         Component::from_file(&engine, &args.file).context("Component file not found")?;
 
     let command =
-        wasmtime_wasi::p2::bindings::Command::instantiate_async(&mut store, &component, &linker)
+        wasmtime_wasi::p3::bindings::Command::instantiate_async(&mut store, &component, &linker)
             .await
             .unwrap();
 
-    std::thread::spawn(move || {
-        pollster::block_on(command.wasi_cli_run().call_run(&mut store))
-            .context("failed to invoke `run` function")
-            .unwrap()
-            .unwrap();
+    tokio::spawn(async move {
+        store
+            .run_concurrent(async move |store| command.wasi_cli_run().call_run(store).await)
+            .await
+            .expect("failed to run component")
+            .expect("failed to invoke `run` function")
+            .expect("`run` returned an error");
     });
 
     main_thread_loop.run();
